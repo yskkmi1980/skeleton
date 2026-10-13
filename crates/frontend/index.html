@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark theme-dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skeleton Application</title>
+    <!-- Pre-wasm anti-flicker theme initialization -->
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('app_theme');
+                var cls = 'dark theme-dark';
+                if (saved === 'light') cls = 'light theme-light';
+                else if (saved === 'modern') cls = 'dark theme-modern';
+                else if (saved === 'industrial') cls = 'dark theme-industrial';
+                document.documentElement.className = cls;
+            } catch (e) { }
+        })();
+    </script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#090d16',
+                            800: '#0f172a',
+                            700: '#1e293b',
+                            600: '#334155',
+                        },
+                        brand: {
+                            500: '#38bdf8',
+                            600: '#0284c7',
+                        },
+                        // Dynamic theme palette driven by CSS variables
+                        comfy: {
+                            canvas: 'rgb(var(--color-canvas) / <alpha-value>)',
+                            node: 'rgb(var(--color-node) / <alpha-value>)',
+                            titlebar: 'rgb(var(--color-titlebar) / <alpha-value>)',
+                            hover: 'rgb(var(--color-hover) / <alpha-value>)',
+                            border: 'rgb(var(--color-border) / <alpha-value>)',
+                            borderlight: 'rgb(var(--color-borderlight) / <alpha-value>)',
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link data-trunk rel="rust" data-bin="frontend" />
+    <style>
+        /* CSS Variables per Theme */
+        :root,
+        html.theme-dark {
+            --color-canvas: 22 22 26;
+            --color-node: 30 30 36;
+            --color-titlebar: 38 38 46;
+            --color-hover: 44 44 53;
+            --color-border: 58 58 66;
+            --color-borderlight: 74 74 85;
+            --canvas-dot: #26262e;
+            --scrollbar-track: #16161a;
+            --scrollbar-thumb: #3a3a42;
+            --scrollbar-hover: #4a4a55;
+        }
+
+        html.theme-light {
+            --color-canvas: 241 245 249;
+            --color-node: 255 255 255;
+            --color-titlebar: 248 250 252;
+            --color-hover: 226 232 240;
+            --color-border: 203 213 225;
+            --color-borderlight: 148 163 184;
+            --canvas-dot: #cbd5e1;
+            --scrollbar-track: #f1f5f9;
+            --scrollbar-thumb: #cbd5e1;
+            --scrollbar-hover: #94a3b8;
+        }
+
+        html.theme-modern {
+            --color-canvas: 10 11 18;
+            --color-node: 17 19 32;
+            --color-titlebar: 24 27 46;
+            --color-hover: 34 38 64;
+            --color-border: 46 52 86;
+            --color-borderlight: 68 76 122;
+            --canvas-dot: #2e3456;
+            --scrollbar-track: #0a0b12;
+            --scrollbar-thumb: #2e3456;
+            --scrollbar-hover: #444c7a;
+        }
+
+        html.theme-industrial {
+            --color-canvas: 24 24 22;
+            --color-node: 34 34 31;
+            --color-titlebar: 43 43 39;
+            --color-hover: 56 56 50;
+            --color-border: 72 72 62;
+            --color-borderlight: 102 102 87;
+            --canvas-dot: #3d3d34;
+            --scrollbar-track: #181816;
+            --scrollbar-thumb: #48483e;
+            --scrollbar-hover: #666657;
+        }
+
+        /* Dot-grid canvas background using CSS variables */
+        .comfy-canvas {
+            background-color: rgb(var(--color-canvas));
+            background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
+            background-size: 22px 22px;
+        }
+
+        /* Custom scrollbars using CSS variables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-hover);
+        }
+
+        /* =========================================================================
+           Light Theme Complete Contrast, Surface & Icon Overrides
+           ========================================================================= */
+        html.theme-light body {
+            color: #0f172a !important;
+        }
+
+        /* Typography & Headings: ensure text is dark on light backgrounds */
+        html.theme-light h1,
+        html.theme-light h2,
+        html.theme-light h3,
+        html.theme-light h4,
+        html.theme-light h5,
+        html.theme-light h6 {
+            color: #0f172a !important;
+        }
+
+        html.theme-light .text-slate-100 {
+            color: #0f172a !important;
+        }
+
+        html.theme-light .text-slate-200 {
+            color: #1e293b !important;
+        }
+
+        html.theme-light .text-slate-300 {
+            color: #334155 !important;
+        }
+
+        html.theme-light .text-slate-400 {
+            color: #475569 !important;
+        }
+
+        html.theme-light .text-slate-500 {
+            color: #64748b !important;
+        }
+
+        /* Invert default text-white to dark slate across all general elements,
+           guaranteeing high contrast on light backgrounds (table cells, spans, divs, labels, buttons) */
+        html.theme-light .text-white,
+        html.theme-light span.text-white,
+        html.theme-light div.text-white,
+        html.theme-light td.text-white,
+        html.theme-light th.text-white,
+        html.theme-light p.text-white,
+        html.theme-light a.text-white,
+        html.theme-light label.text-white,
+        html.theme-light input.text-white,
+        html.theme-light textarea.text-white,
+        html.theme-light select.text-white {
+            color: #0f172a !important;
+        }
+
+        /* Hover states: never turn white on light hover surfaces */
+        html.theme-light .hover\:text-white:hover,
+        html.theme-light .group:hover .group-hover\:text-white,
+        html.theme-light a:hover.text-white,
+        html.theme-light button:hover.text-white {
+            color: #0f172a !important;
+        }
+
+        /* Maintain crisp white text & icons on solid colored buttons, active badges & gradients */
+        html.theme-light button[class*="from-"],
+        html.theme-light button[class*="from-"] *,
+        html.theme-light button[class*="bg-gradient-"],
+        html.theme-light button[class*="bg-gradient-"] *,
+        html.theme-light a[class*="from-"],
+        html.theme-light a[class*="from-"] *,
+        html.theme-light button.bg-sky-500,
+        html.theme-light button.bg-sky-600,
+        html.theme-light button.bg-indigo-600,
+        html.theme-light button.bg-violet-600,
+        html.theme-light button.bg-purple-600,
+        html.theme-light button.bg-emerald-600,
+        html.theme-light button.bg-rose-600,
+        html.theme-light .bg-sky-500 > .text-white,
+        html.theme-light .bg-sky-600 > .text-white,
+        html.theme-light .bg-indigo-600 > .text-white,
+        html.theme-light .bg-violet-600 > .text-white,
+        html.theme-light .bg-purple-600 > .text-white,
+        html.theme-light .bg-emerald-600 > .text-white,
+        html.theme-light .bg-rose-600 > .text-white {
+            color: #ffffff !important;
+        }
+
+        /* Accent Colors: High Contrast on Light Backgrounds (darker tones for 100-400 shades) */
+        html.theme-light .text-sky-400,
+        html.theme-light .text-sky-300 {
+            color: #0284c7 !important;
+        }
+        html.theme-light .text-sky-200,
+        html.theme-light .text-sky-100 {
+            color: #0369a1 !important;
+        }
+
+        html.theme-light .text-indigo-400,
+        html.theme-light .text-indigo-300 {
+            color: #4338ca !important;
+        }
+        html.theme-light .text-indigo-200,
+        html.theme-light .text-indigo-100 {
+            color: #3730a3 !important;
+        }
+
+        html.theme-light .text-violet-400,
+        html.theme-light .text-violet-300 {
+            color: #6d28d9 !important;
+        }
+        html.theme-light .text-violet-200,
+        html.theme-light .text-violet-100 {
+            color: #5b21b6 !important;
+        }
+
+        html.theme-light .text-purple-400,
+        html.theme-light .text-purple-300 {
+            color: #7e22ce !important;
+        }
+        html.theme-light .text-purple-200,
+        html.theme-light .text-purple-100 {
+            color: #6b21a8 !important;
+        }
+
+        html.theme-light .text-fuchsia-400,
+        html.theme-light .text-fuchsia-300,
+        html.theme-light .text-fuchsia-200 {
+            color: #a21caf !important;
+        }
+
+        html.theme-light .text-emerald-400,
+        html.theme-light .text-emerald-300 {
+            color: #047857 !important;
+        }
+        html.theme-light .text-emerald-200,
+        html.theme-light .text-emerald-100 {
+            color: #065f46 !important;
+        }
+
+        html.theme-light .text-green-400,
+        html.theme-light .text-green-300,
+        html.theme-light .text-green-200 {
+            color: #15803d !important;
+        }
+
+        html.theme-light .text-amber-400,
+        html.theme-light .text-amber-300 {
+            color: #b45309 !important;
+        }
+        html.theme-light .text-amber-200,
+        html.theme-light .text-amber-100 {
+            color: #92400e !important;
+        }
+
+        html.theme-light .text-yellow-400,
+        html.theme-light .text-yellow-300,
+        html.theme-light .text-yellow-200 {
+            color: #a16207 !important;
+        }
+
+        html.theme-light .text-rose-400,
+        html.theme-light .text-rose-300 {
+            color: #be123c !important;
+        }
+        html.theme-light .text-rose-200,
+        html.theme-light .text-rose-100 {
+            color: #9f1239 !important;
+        }
+
+        html.theme-light .text-red-400,
+        html.theme-light .text-red-300,
+        html.theme-light .text-red-200 {
+            color: #b91c1c !important;
+        }
+
+        html.theme-light .text-blue-400,
+        html.theme-light .text-blue-300 {
+            color: #1d4ed8 !important;
+        }
+        html.theme-light .text-blue-200,
+        html.theme-light .text-blue-100 {
+            color: #1e40af !important;
+        }
+
+        html.theme-light .text-cyan-400,
+        html.theme-light .text-cyan-300,
+        html.theme-light .text-cyan-200 {
+            color: #0e7490 !important;
+        }
+
+        html.theme-light .text-teal-400,
+        html.theme-light .text-teal-300,
+        html.theme-light .text-teal-200 {
+            color: #0f766e !important;
+        }
+
+        html.theme-light .text-pink-400,
+        html.theme-light .text-pink-300,
+        html.theme-light .text-pink-200 {
+            color: #be185d !important;
+        }
+
+        /* Surface Backgrounds: Replaces dark slate surfaces with harmonious light layers */
+        html.theme-light [class*="bg-slate-950"],
+        html.theme-light [class*="bg-slate-950/"] {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        html.theme-light [class*="bg-slate-900"],
+        html.theme-light [class*="bg-slate-900/"] {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        html.theme-light [class*="bg-slate-850"] {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        html.theme-light [class*="bg-slate-800"]:not(button),
+        html.theme-light [class*="bg-slate-800/"]:not(button) {
+            background-color: #f1f5f9 !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        html.theme-light [class*="bg-slate-700"]:not(button):not(:hover) {
+            background-color: #e2e8f0 !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        /* Buttons & Controls: Solid crisp contrast in light mode (matching center pane) */
+        html.theme-light button[class*="bg-comfy-hover"],
+        html.theme-light button[class*="bg-slate-800"],
+        html.theme-light button[class*="bg-slate-700"] {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #334155 !important;
+        }
+
+        html.theme-light button[class*="bg-comfy-hover"]:hover,
+        html.theme-light button[class*="bg-slate-800"]:hover,
+        html.theme-light button[class*="bg-slate-700"]:hover,
+        html.theme-light button:hover[class*="hover:bg-slate-700"],
+        html.theme-light button:hover[class*="hover:bg-slate-800"],
+        html.theme-light button:hover[class*="hover:bg-comfy-hover"] {
+            background-color: #e2e8f0 !important;
+            border-color: #94a3b8 !important;
+            color: #0f172a !important;
+        }
+
+        /* Icon colors inside buttons in light mode */
+        html.theme-light button[class*="bg-comfy-hover"] i:not([class*="text-sky-"]):not([class*="text-indigo-"]):not([class*="text-purple-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="text-rose-"]),
+        html.theme-light button[class*="bg-slate-800"] i:not([class*="text-sky-"]):not([class*="text-indigo-"]):not([class*="text-purple-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="text-rose-"]),
+        html.theme-light button.p-1\.5 i,
+        html.theme-light button.p-2 i {
+            color: #475569 !important;
+        }
+
+        html.theme-light button[class*="bg-comfy-hover"]:hover i,
+        html.theme-light button[class*="bg-slate-800"]:hover i {
+            color: #0f172a !important;
+        }
+
+        /* Arbitrary dark hex colors used in modals/terminal containers */
+        html.theme-light [class*="bg-[#090d16]"],
+        html.theme-light .bg-\[\#090d16\] {
+            background-color: #f8fafc !important;
+        }
+        html.theme-light [class*="bg-[#1e293b]"],
+        html.theme-light .bg-\[\#1e293b\]\/50,
+        html.theme-light .bg-\[\#1e293b\]\/70 {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        /* Divide & Table borders in light mode */
+        html.theme-light [class*="divide-slate-800"],
+        html.theme-light [class*="divide-slate-700"] {
+            border-color: #e2e8f0 !important;
+        }
+
+        /* Borders */
+        html.theme-light [class*="border-slate-800"],
+        html.theme-light [class*="border-slate-700"],
+        html.theme-light [class*="border-slate-600"] {
+            border-color: #e2e8f0 !important;
+        }
+
+        /* Form Controls: Inputs, selects, textareas */
+        html.theme-light input:not([type="checkbox"]):not([type="radio"]),
+        html.theme-light textarea,
+        html.theme-light select {
+            color: #0f172a !important;
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        html.theme-light input::placeholder,
+        html.theme-light textarea::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        html.theme-light select option {
+            color: #0f172a !important;
+            background-color: #ffffff !important;
+        }
+
+        /* Title Gradients: Avoid invisible white text clipping */
+        html.theme-light .from-white {
+            --tw-gradient-from: #0f172a !important;
+            --tw-gradient-to: #475569 !important;
+            --tw-gradient-stops: var(--tw-gradient-from), #334155, var(--tw-gradient-to) !important;
+        }
+
+        /* Code and Pre blocks */
+        html.theme-light code,
+        html.theme-light pre {
+            color: #0f172a !important;
+            background-color: #f1f5f9 !important;
+        }
+
+        /* Selection highlight in light mode */
+        html.theme-light ::selection {
+            background-color: #bae6fd !important;
+            color: #0f172a !important;
+        }
+
+        /* SVG Chart Grid and Axis Contrast */
+        html.theme-light svg line[stroke="#334155"] {
+            stroke: #cbd5e1 !important;
+        }
+        html.theme-light svg text[fill="#64748b"] {
+            fill: #475569 !important;
+        }
+
+        /* Settings dropdown menu popup: fully opaque with theme-derived surface */
+        .settings-menu-popup {
+            background-color: rgb(var(--color-node)) !important;
+            border-color: rgb(var(--color-borderlight)) !important;
+        }
+
+        /* Dock Panel & Node Frame Titlebars in Light Mode */
+        html.theme-light .bg-comfy-titlebar span,
+        html.theme-light .bg-comfy-titlebar h3,
+        html.theme-light .bg-comfy-titlebar h4,
+        html.theme-light .bg-comfy-titlebar div {
+            color: #0f172a !important;
+        }
+
+        html.theme-light .bg-comfy-titlebar i:not([class*="text-sky-"]):not([class*="text-indigo-"]):not([class*="text-purple-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="text-rose-"]) {
+            color: #475569 !important;
+        }
+
+        /* Pane & Collapsible Group Headers */
+        html.theme-light [class*="bg-slate-900/40"] button span,
+        html.theme-light [class*="bg-slate-900/40"] button i {
+            color: #1e293b !important;
+        }
+
+        /* Card Titles and Main Headings across Panes */
+        html.theme-light .node-card h4,
+        html.theme-light [class*="bg-slate-900"] h3,
+        html.theme-light [class*="bg-slate-900"] h4,
+        html.theme-light [class*="bg-slate-900/"] h3,
+        html.theme-light [class*="bg-slate-900/"] h4,
+        html.theme-light [class*="bg-slate-900"] span.text-white,
+        html.theme-light [class*="bg-slate-900/"] span.text-white,
+        html.theme-light [class*="bg-comfy-node"] span.text-white {
+            color: #0f172a !important;
+        }
+
+        /* Runner Node Card Specific Content & Resource Labels in Light Mode */
+        html.theme-light .node-card span,
+        html.theme-light [class*="border-sky-500"] span.text-white,
+        html.theme-light [class*="border-slate-800"] span.text-white {
+            color: #0f172a !important;
+        }
+
+        /* Crisp Badges and Translucent Chips (removing foggy washed-out appearance) */
+        html.theme-light [class*="bg-emerald-500/10"],
+        html.theme-light [class*="bg-emerald-500/20"] {
+            background-color: #ecfdf5 !important;
+            border-color: #a7f3d0 !important;
+            color: #065f46 !important;
+        }
+
+        html.theme-light [class*="bg-sky-500/10"],
+        html.theme-light [class*="bg-sky-500/20"] {
+            background-color: #f0f9ff !important;
+            border-color: #bae6fd !important;
+            color: #0369a1 !important;
+        }
+
+        html.theme-light [class*="bg-purple-500/10"],
+        html.theme-light [class*="bg-purple-500/20"] {
+            background-color: #faf5ff !important;
+            border-color: #e9d5ff !important;
+            color: #6b21a8 !important;
+        }
+
+        html.theme-light [class*="bg-indigo-500/10"],
+        html.theme-light [class*="bg-indigo-500/20"] {
+            background-color: #eef2ff !important;
+            border-color: #c7d2fe !important;
+            color: #3730a3 !important;
+        }
+
+        html.theme-light [class*="bg-amber-500/10"],
+        html.theme-light [class*="bg-amber-500/20"] {
+            background-color: #fffbeb !important;
+            border-color: #fde68a !important;
+            color: #92400e !important;
+        }
+
+        html.theme-light [class*="bg-rose-500/10"],
+        html.theme-light [class*="bg-rose-500/20"] {
+            background-color: #fff1f2 !important;
+            border-color: #fecdd3 !important;
+            color: #9f1239 !important;
+        }
+
+        html.theme-light [class*="bg-blue-500/10"],
+        html.theme-light [class*="bg-blue-500/20"] {
+            background-color: #eff6ff !important;
+            border-color: #bfdbfe !important;
+            color: #1e40af !important;
+        }
+
+        /* Neutral code and detail chips inside cards */
+        html.theme-light [class*="bg-slate-800/60"],
+        html.theme-light [class*="bg-slate-800/80"],
+        html.theme-light [class*="bg-slate-800/90"],
+        html.theme-light [class*="bg-slate-950/60"] {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #334155 !important;
+        }
+
+        /* Mobile Slide-Out Dock Drawers (< 1024px) */
+        @media (max-width: 1023px) {
+            .dock-drawer-bottom {
+                height: 65vh !important;
+                max-height: 85vh !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="comfy-canvas text-slate-100 min-h-screen font-sans selection:bg-sky-500 selection:text-white">
+    <div id="root"></div>
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+# Rust build artifacts
+/target/
+target/
+**/*.rs.bk
+
+# SQLite databases & temp files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+app.db
+sqlite_mcp_server.db
+
+# Generated data & job artifacts
+data/artifacts/
+data/logs/
+/data/
+
+# Frontend distribution & Trunk cache
+crates/frontend/dist/
+dist/
+.trunk/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python (MCP server)
+.venv/
+__pycache__/
+*.pyc
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Tauri generated schemas
+/crates/desktop/gen/
